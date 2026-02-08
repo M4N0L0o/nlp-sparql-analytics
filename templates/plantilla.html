@@ -1,0 +1,540 @@
+<!doctype html>
+<html>
+<head>
+    <title>Navegador de Reseñas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #eaaa66, #a25b4b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #searchForm {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #query {
+            flex: 1;
+            min-width: 300px;
+            padding: 14px 18px;
+            font-size: 1.1em;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #query:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        button {
+            padding: 14px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button[type="submit"] {
+            background: linear-gradient(135deg, #5cb85c, #4cae4c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(92, 184, 92, 0.3);
+        }
+
+        button[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(92, 184, 92, 0.4);
+        }
+
+        #showGraphBtn {
+            background: linear-gradient(135deg, #337ab7, #286090);
+            color: white;
+            display: none;
+            box-shadow: 0 4px 15px rgba(51, 122, 183, 0.3);
+        }
+
+        #showGraphBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(51, 122, 183, 0.4);
+        }
+
+        .action-bar {
+            margin: 20px 0;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            display: none;
+            border-left: 4px solid #667eea;
+        }
+
+        .action-bar p {
+            color: #495057;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        #resultCount {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .review-result {
+            background: white;
+            margin-bottom: 24px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .review-result::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .review-result:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            gap: 20px;
+        }
+
+        .review-result h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.3em;
+            font-weight: 700;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6c757d;
+            font-size: 0.9em;
+            flex-shrink: 0;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .author-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .author-name {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .review-result p {
+            margin-bottom: 12px;
+            color: #5a6c7d;
+            line-height: 1.7;
+        }
+
+        .review-result p:last-child {
+            margin-bottom: 0;
+        }
+
+        .score {
+            display: inline-block;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9em;
+            margin-bottom: 16px;
+        }
+
+        .review-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6c757d;
+            font-size: 0.95em;
+        }
+
+        .meta-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .rating-stars {
+            color: #ffc107;
+            font-size: 1.1em;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #dc3545;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 20px;
+            }
+
+            #searchForm {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #query {
+                min-width: unset;
+                margin-bottom: 10px;
+            }
+
+            button {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .review-result {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .review-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .author-info {
+                align-self: flex-end;
+            }
+
+            .review-meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .review-result {
+                padding: 16px;
+            }
+
+            .review-header {
+                gap: 8px;
+            }
+
+            .author-info {
+                font-size: 0.8em;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Navegador de Reseñas Basado en Grafo de Conocimiento y BM25</h1>
+        <form id="searchForm">
+            <input type="text" id="query" name="query" placeholder="Ej: negative reviews about Fire HD 8 Tablet" size="50">
+            <button type="submit">Buscar</button>
+            <button type="button" id="showGraphBtn">Ver Grafo de Relaciones</button>
+        </form>
+
+        <!-- Barra de acciones que aparece después de una búsqueda -->
+        <div id="actionBar" class="action-bar">
+            <p><strong>Resultados encontrados:</strong> <span id="resultCount">0</span></p>
+        </div>
+
+        <div id="results">
+            <!-- Aquí se mostrarán los resultados de la búsqueda -->
+        </div>
+    </div>
+
+    <script>
+        let lastQuery = ''; // Variable para almacenar la última consulta
+
+        function createStars(rating) {
+            const numRating = parseFloat(rating);
+            if (isNaN(numRating)) return rating;
+            
+            const fullStars = Math.floor(numRating);
+            const hasHalfStar = numRating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            
+            let stars = '★'.repeat(fullStars);
+            if (hasHalfStar) stars += '☆';
+            stars += '☆'.repeat(emptyStars);
+            
+            return `<span class="rating-stars">${stars}</span> ${rating}`;
+        }
+
+        function getAuthorInitial(author) {
+            if (!author || author === 'Autor desconocido' || author === 'N/A') {
+                return '?';
+            }
+            return author.charAt(0).toUpperCase();
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Evitar que el formulario se envíe de la forma tradicional
+
+            const queryInput = document.getElementById('query');
+            const query = queryInput.value;
+            const resultsDiv = document.getElementById('results');
+            const showGraphBtn = document.getElementById('showGraphBtn');
+            const actionBar = document.getElementById('actionBar');
+            const resultCount = document.getElementById('resultCount');
+
+            // Guardar la consulta actual
+            lastQuery = query;
+
+            // Mostrar un mensaje de carga y limpiar resultados anteriores
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div>Cargando resultados...</div>';
+            
+            // Ocultar el botón del grafo y la barra de acciones mientras se carga
+            showGraphBtn.style.display = 'none';
+            actionBar.style.display = 'none';
+
+            // Crear un objeto FormData para enviar los datos del formulario
+            const formData = new FormData();
+            formData.append('query', query);
+
+            // Realizar la solicitud POST usando Fetch API
+            fetch('/search_ajax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                // Verificar si la respuesta es exitosa (status 200-299)
+                if (!response.ok) {
+                    // Lanzar un error si la respuesta HTTP no es exitosa
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // Parsear la respuesta JSON
+            })
+            .then(data => {
+                // Limpiar el mensaje de carga
+                resultsDiv.innerHTML = '';
+
+                if (data.length > 0) {
+                    data.forEach(review => {
+                        const reviewElement = document.createElement('div');
+                        reviewElement.classList.add('review-result');
+
+                        // Construir el HTML para cada reseña, verificando la existencia de los campos
+                        let reviewHTML = '';
+                        
+                        if (review.score) {
+                            reviewHTML += `<div class="score">Score BM25: ${review.score}</div>`;
+                        }
+                        
+                        // Crear el header con título y autor
+                        reviewHTML += '<div class="review-header">';
+                        
+                        if (review.title && review.title !== 'Sin título') {
+                            reviewHTML += `<h3>${review.title}</h3>`;
+                        } else {
+                            reviewHTML += '<h3>Reseña sin título</h3>';
+                        }
+                        
+                        // Agregar información del autor en la esquina superior derecha
+                        if (review.author && review.author !== 'Autor desconocido' && review.author !== 'N/A') {
+                            reviewHTML += `
+                                <div class="author-info">
+                                    <div class="author-icon">${getAuthorInitial(review.author)}</div>
+                                    <span class="author-name">${review.author}</span>
+                                </div>
+                            `;
+                        } else {
+                            reviewHTML += `
+                                <div class="author-info">
+                                    <div class="author-icon">?</div>
+                                    <span class="author-name">Anónimo</span>
+                                </div>
+                            `;
+                        }
+                        
+                        reviewHTML += '</div>'; // Cerrar review-header
+                        
+                        if (review.text && review.text !== 'Sin texto') {
+                            reviewHTML += `<p>${review.text}</p>`;
+                        }
+                        
+                        // Crear la sección de metadatos
+                        let metaHTML = '<div class="review-meta">';
+                        if (review.product && review.product !== 'Producto desconocido') {
+                            metaHTML += `<div class="meta-item"><span class="meta-label">Producto:</span> ${review.product}</div>`;
+                        }
+                        if (review.rating && review.rating !== 'N/A') {
+                            metaHTML += `<div class="meta-item"><span class="meta-label">Calificación:</span> ${createStars(review.rating)}</div>`;
+                        }
+                        metaHTML += '</div>';
+                        
+                        // Solo agregar metadatos si hay al menos uno
+                        if (metaHTML.includes('meta-item')) {
+                            reviewHTML += metaHTML;
+                        }
+
+                        reviewElement.innerHTML = reviewHTML;
+                        resultsDiv.appendChild(reviewElement);
+                    });
+                    
+                    // Mostrar la barra de acciones y el botón del grafo
+                    resultCount.textContent = data.length;
+                    actionBar.style.display = 'block';
+                    showGraphBtn.style.display = 'inline-block';
+                    
+                } else {
+                    resultsDiv.innerHTML = '<div class="no-results">No se encontraron reseñas relevantes.</div>';
+                    // Ocultar la barra de acciones si no hay resultados
+                    actionBar.style.display = 'none';
+                    showGraphBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error durante la solicitud:', error);
+                resultsDiv.innerHTML = `<div class="error-message"><p><strong>Ocurrió un error al buscar reseñas.</strong></p><p>Detalles: ${error.message}</p><p>Consulta la consola del navegador para más detalles.</p></div>`;
+                
+                // Ocultar la barra de acciones en caso de error
+                actionBar.style.display = 'none';
+                showGraphBtn.style.display = 'none';
+            });
+        });
+
+        // Event listener para el botón del grafo
+        document.getElementById('showGraphBtn').addEventListener('click', function() {
+            if (lastQuery) {
+                // Abrir una nueva ventana con el grafo
+                const graphWindow = window.open('/graph_view', 'GraphWindow', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                // Enviar la consulta a la nueva ventana una vez que se cargue
+                graphWindow.addEventListener('load', function() {
+                    graphWindow.postMessage({query: lastQuery}, '*');
+                });
+            } else {
+                alert('No hay consulta disponible para mostrar el grafo.');
+            }
+        });
+    </script>
+</body>
+</html>

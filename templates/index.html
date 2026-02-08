@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navegador de reviews</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .query-section {
+            margin-bottom: 30px;
+        }
+
+        .query-section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        #userQuery {
+            flex: 1;
+            min-width: 300px;
+            padding: 14px 18px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        #userQuery:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5cb85c, #4cae4c);
+            color: white;
+            box-shadow: 0 4px 15px rgba(92, 184, 92, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(92, 184, 92, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #337ab7, #286090);
+            color: white;
+            box-shadow: 0 4px 15px rgba(51, 122, 183, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(51, 122, 183, 0.4);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 24px;
+        }
+
+        /* Updated result card styles based on plantilla.html */
+        .result-card {
+            background: white;
+            margin-bottom: 24px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+        }
+
+        .result-header {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 16px;
+            font-size: 1.2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .result-index {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .result-field {
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            line-height: 1.7;
+        }
+
+        .field-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 140px;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+
+        .field-value {
+            color: #5a6c7d;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        /* Special styling for rating */
+        .rating-value {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rating-stars {
+            color: #ffc107;
+            font-size: 1.1em;
+        }
+
+        .rating-number {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        /* Special styling for review text */
+        .review-text-value {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            font-style: italic;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+
+        .error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #dc3545;
+            margin-top: 15px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #495057;
+            font-weight: 600;
+            border-left: 4px solid #667eea;
+        }
+
+        .stats-highlight {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .examples {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+
+        .examples h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .example-query {
+            background: white;
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #e0e6ed;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+        }
+
+        .example-query:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+
+            #userQuery {
+                min-width: unset;
+                margin-bottom: 10px;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .result-card {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .result-index {
+                align-self: flex-end;
+            }
+
+            .field-label {
+                min-width: 100px;
+                margin-right: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 10px;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .result-card {
+                padding: 16px;
+            }
+
+            .field-label {
+                min-width: 80px;
+                margin-right: 8px;
+                font-size: 0.9em;
+            }
+
+            .field-value {
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Navegador de reviews</h1>
+            <p>Haz preguntas en lenguaje natural sobre reseñas de productos</p>
+        </div>
+
+        <div class="main-content">
+            <div class="query-section">
+                <h2>💬 Consulta en Lenguaje Natural</h2>
+                <div class="input-group">
+                    <input type="text" id="userQuery" placeholder="Ej: Muéstrame las reseñas negativas sobre productos Kindle..." />
+                    <button class="btn btn-primary" onclick="processQuery()">Consultar</button>
+                    <button class="btn btn-secondary" onclick="clearResults()">Limpiar</button>
+                    <a href="/graph" class="btn btn-secondary">🕸️ Ver Grafo</a>
+                </div>
+
+                <div class="examples">
+                    <h3>📝 Ejemplos de consultas:</h3>
+                    <div class="example-query" onclick="setQuery('Muéstrame las reseñas negativas sobre productos Kindle')">
+                        Muéstrame las reseñas negativas sobre productos Kindle
+                    </div>
+                    <div class="example-query" onclick="setQuery('Encuentra reseñas con calificación 5')">
+                        Encuentra reseñas con calificación 5
+                    </div>
+                    <div class="example-query" onclick="setQuery('¿Qué productos tienen reseñas positivas?')">
+                        ¿Qué productos tienen reseñas positivas?
+                    </div>
+                    <div class="example-query" onclick="setQuery('Muéstrame reseñas que mencionen problemas o fallas')">
+                        Muéstrame reseñas que mencionen problemas o fallas
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Procesando consulta...</p>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>📊 Resultados</h2>
+                <div id="stats" class="stats"></div>
+                <div id="results" class="results-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setQuery(query) {
+            document.getElementById('userQuery').value = query;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function clearResults() {
+            document.getElementById('userQuery').value = '';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('stats').innerHTML = '';
+        }
+
+        function createStars(rating) {
+            const numRating = parseFloat(rating);
+            if (isNaN(numRating)) return rating;
+            
+            const fullStars = Math.floor(numRating);
+            const hasHalfStar = numRating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+            
+            let stars = '★'.repeat(fullStars);
+            if (hasHalfStar) stars += '☆';
+            stars += '☆'.repeat(emptyStars);
+            
+            return `<span class="rating-stars">${stars}</span>`;
+        }
+
+        async function processQuery() {
+            const query = document.getElementById('userQuery').value.trim();
+            
+            if (!query) {
+                alert('Por favor, ingresa una consulta');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+
+                const data = await response.json();
+                hideLoading();
+                displayResults(data);
+
+            } catch (error) {
+                hideLoading();
+                displayError('Error de conexión: ' + error.message);
+            }
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            const stats = document.getElementById('stats');
+            const results = document.getElementById('results');
+
+            resultsSection.style.display = 'block';
+
+            // Mostrar estadísticas
+            if (data.results.error) {
+                stats.innerHTML = `<div class="error">❌ ${data.results.error}</div>`;
+                results.innerHTML = '';
+                return;
+            }
+
+            if (data.results.message) {
+                stats.innerHTML = `<div class="no-results">ℹ️ ${data.results.message}</div>`;
+                results.innerHTML = '';
+                return;
+            }
+
+            //stats.innerHTML = `📈 Encontrados: <span class="stats-highlight">${data.results.total || 0}</span> resultados | Columnas disponibles: <span class="stats-highlight">${(data.results.variables || []).join(', ')}</span>`;
+
+            // Mostrar resultados con el nuevo diseño
+            if (data.results.results && data.results.results.length > 0) {
+                results.innerHTML = data.results.results.map(result => {
+                    let cardContent = `
+                        <div class="result-header">
+                            <span>Resultado</span>
+                            <div class="result-index">#${result.index}</div>
+                        </div>
+                    `;
+                    
+                    // Orden específico de campos
+                    const fieldOrder = ['reviewNode', 'reviewTitle', 'reviewText', 'user', 'rating', 'productLabel', 'product'];
+                    
+                    fieldOrder.forEach(field => {
+                        if (result[field] !== undefined && field !== 'index' && field !== 'raw_data') {
+                            let displayLabel = getFieldDisplayName(field);
+                            let fieldValue = result[field];
+                            let fieldClass = 'field-value';
+                            
+                            // Styling especial para diferentes tipos de campos
+                            if (field === 'reviewText') {
+                                fieldValue = `<div class="review-text-value">${fieldValue}</div>`;
+                            } else if (field === 'rating') {
+                                const stars = createStars(fieldValue);
+                                fieldValue = `
+                                    <div class="rating-value">
+                                        ${stars}
+                                        <span class="rating-number">${fieldValue}</span>
+                                    </div>
+                                `;
+                            }
+                            
+                            cardContent += `
+                                <div class="result-field">
+                                    <span class="field-label">${displayLabel}:</span>
+                                    <span class="${fieldClass}">${fieldValue}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    // Añadir campos adicionales
+                    Object.keys(result).forEach(key => {
+                        if (!fieldOrder.includes(key) && key !== 'index' && key !== 'raw_data') {
+                            let displayLabel = getFieldDisplayName(key);
+                            cardContent += `
+                                <div class="result-field">
+                                    <span class="field-label">${displayLabel}:</span>
+                                    <span class="field-value">${result[key]}</span>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    return `<div class="result-card">${cardContent}</div>`;
+                }).join('');
+            } else {
+                results.innerHTML = '<div class="no-results">No se encontraron resultados</div>';
+            }
+        }
+
+        function getFieldDisplayName(field) {
+            const fieldNames = {
+                'reviewNode': 'Nodo Reseña (BNode)',
+                'reviewTitle': 'Título',
+                'reviewText': 'Texto de la Reseña',
+                'user': 'Autor',
+                'rating': 'Calificación',
+                'productLabel': 'Producto',
+                'product': 'Producto (URI)'
+            };
+            return fieldNames[field] || field;
+        }
+
+        function displayError(message) {
+            const resultsSection = document.getElementById('resultsSection');
+            const results = document.getElementById('results');
+            
+            resultsSection.style.display = 'block';
+            results.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // Permitir envío con Enter
+        document.getElementById('userQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                processQuery();
+            }
+        });
+    </script>
+</body>
+</html>

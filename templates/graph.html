@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Grafo RDF</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #3498db);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #5cb85c, #4cae4c);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .graph-container {
+            flex: 1;
+            position: relative;
+            background: white;
+            overflow: hidden;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #667eea;
+            z-index: 100;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 200;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 12px;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+        }
+
+        .control-group button {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 200;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .error {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #dc3545;
+            text-align: center;
+            z-index: 100;
+        }
+
+        /* Estilos para los nodos y enlaces del grafo */
+        .node {
+            cursor: pointer;
+            stroke-width: 2px;
+        }
+
+        .node:hover {
+            stroke-width: 3px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 1.5px;
+        }
+
+        .node-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 10px;
+            font-weight: 500;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        .link-label {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 9px;
+            font-weight: 400;
+            fill: #666;
+            pointer-events: none;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 10px 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.4em;
+            }
+
+            .controls {
+                position: static;
+                margin: 10px;
+                order: -1;
+            }
+
+            .legend {
+                position: static;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🕸️ Visualizador de Grafo RDF</h1>
+            <div class="header-controls">
+                <button class="btn btn-primary" onclick="loadGraph()">Cargar Grafo</button>
+                <button class="btn btn-secondary" onclick="resetView()">Resetear Vista</button>
+                <a href="/" class="btn btn-secondary">← Volver a Consultas</a>
+            </div>
+        </div>
+
+        <div class="graph-container">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Cargando grafo...</p>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Zoom:</label>
+                    <button class="btn btn-secondary" onclick="zoomIn()">+</button>
+                    <button class="btn btn-secondary" onclick="zoomOut()">-</button>
+                </div>
+                <div class="control-group">
+                    <label>Fuerza de Enlaces:</label>
+                    <input type="range" id="linkStrength" min="0.1" max="2" step="0.1" value="1" onchange="updateForces()">
+                </div>
+                <div class="control-group">
+                    <label>Fuerza de Repulsión:</label>
+                    <input type="range" id="chargeStrength" min="-500" max="-50" step="10" value="-200" onchange="updateForces()">
+                </div>
+            </div>
+
+            
+
+            <svg id="graph-svg"></svg>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script>
+        let simulation;
+        let svg;
+        let g;
+        let zoom;
+        let graphData = { nodes: [], links: [] };
+
+        function initializeSVG() {
+            const container = document.querySelector('.graph-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            svg = d3.select("#graph-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            // Configurar zoom
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Grupo principal para el grafo
+            g = svg.append("g");
+        }
+
+
+        function getNodeColor(nodeId) {
+            return '#3498db'; // Azul para todos los nodos
+}
+
+        function getNodeSize(nodeId) {
+            const id = nodeId.toLowerCase();
+            if (id.includes('review') || id.includes('reseña')) {
+                return 8;
+            } else if (id.includes('product') || id.includes('producto')) {
+                return 12;
+            } else if (id.includes('user') || id.includes('usuario')) {
+                return 10;
+            } else {
+                return 6;
+            }
+        }
+
+        function truncateText(text, maxLength = 20) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        }
+
+        function formatNodeLabel(nodeId) {
+            // Extraer la parte útil del URI
+            let label = nodeId;
+            
+            if (nodeId.includes('#')) {
+                label = nodeId.split('#').pop();
+            } else if (nodeId.includes('/')) {
+                label = nodeId.split('/').pop();
+            }
+            
+            return truncateText(label, 15);
+        }
+
+        function drawGraph(data) {
+            // Limpiar grafo anterior
+            g.selectAll("*").remove();
+
+            // Configurar simulación
+            const width = svg.attr("width");
+            const height = svg.attr("height");
+
+            simulation = d3.forceSimulation(data.nodes)
+                .force("link", d3.forceLink(data.links).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(d => getNodeSize(d.id) + 5));
+
+            // Crear enlaces
+            const link = g.append("g")
+                .selectAll("line")
+                .data(data.links)
+                .enter().append("line")
+                .attr("class", "link");
+
+            // Etiquetas de enlaces
+            const linkLabels = g.append("g")
+                .selectAll("text")
+                .data(data.links)
+                .enter().append("text")
+                .attr("class", "link-label")
+                .text(d => truncateText(d.predicate, 12));
+
+            // Crear nodos
+            const node = g.append("g")
+                .selectAll("circle")
+                .data(data.nodes)
+                .enter().append("circle")
+                .attr("class", "node")
+                .attr("r", d => getNodeSize(d.id))
+                .attr("fill", d => getNodeColor(d.id))
+                .attr("stroke", "#fff")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            // Etiquetas de nodos
+            const nodeLabels = g.append("g")
+                .selectAll("text")
+                .data(data.nodes)
+                .enter().append("text")
+                .attr("class", "node-label")
+                .text(d => formatNodeLabel(d.id))
+                .attr("dy", d => getNodeSize(d.id) + 15);
+
+            // Tooltips
+            node.append("title")
+                .text(d => d.id);
+
+            // Actualizar posiciones en cada tick
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                linkLabels
+                    .attr("x", d => (d.source.x + d.target.x) / 2)
+                    .attr("y", d => (d.source.y + d.target.y) / 2);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                nodeLabels
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y);
+            });
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        async function loadGraph() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/graph-data');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                graphData = data;
+                hideLoading();
+                drawGraph(graphData);
+                
+            } catch (error) {
+                hideLoading();
+                showError('Error cargando el grafo: ' + error.message);
+            }
+        }
+
+        function updateForces() {
+            if (!simulation) return;
+            
+            const linkStrength = document.getElementById('linkStrength').value;
+            const chargeStrength = document.getElementById('chargeStrength').value;
+            
+            simulation
+                .force("link").strength(linkStrength)
+                .force("charge").strength(chargeStrength);
+            
+            simulation.alpha(1).restart();
+        }
+
+        function zoomIn() {
+            svg.transition().call(zoom.scaleBy, 1.5);
+        }
+
+        function zoomOut() {
+            svg.transition().call(zoom.scaleBy, 1 / 1.5);
+        }
+
+        function resetView() {
+            svg.transition().call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            hideLoading();
+            const container = document.querySelector('.graph-container');
+            container.innerHTML += `<div class="error">❌ ${message}</div>`;
+        }
+
+        // Inicializar cuando se carga la página
+        window.addEventListener('load', () => {
+            initializeSVG();
+            // Cargar automáticamente el grafo
+            loadGraph();
+        });
+
+        // Redimensionar cuando cambia el tamaño de la ventana
+        window.addEventListener('resize', () => {
+            const container = document.querySelector('.graph-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            svg.attr("width", width).attr("height", height);
+            
+            if (simulation) {
+                simulation.force("center", d3.forceCenter(width / 2, height / 2));
+                simulation.alpha(1).restart();
+            }
+        });
+    </script>
+</body>
+</html>
